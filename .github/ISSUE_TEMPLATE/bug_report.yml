@@ -1,0 +1,63 @@
+name: Bug report
+description: Something in Shizzi doesn't work as expected.
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start a session
+        2. ...
+  - type: input
+    id: shizzi-version
+    attributes:
+      label: Shizzi version
+      placeholder: 0.4.0-rc.3
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device model
+      placeholder: Samsung Galaxy S25 Ultra (SM-S938B)
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Android version and OEM skin
+      placeholder: Android 16, One UI 8.5
+    validations:
+      required: true
+  - type: input
+    id: shizuku-version
+    attributes:
+      label: Shizuku version
+    validations:
+      required: true
+  - type: input
+    id: vpn
+    attributes:
+      label: VPN app (if sharing a VPN)
+      placeholder: v2rayNG 1.9 in VPN mode
+  - type: textarea
+    id: log
+    attributes:
+      label: In-app log
+      description: Enable logging in Settings, reproduce the problem, then open Settings → Log and copy it from the overflow menu.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or logcat
+      description: Optional. `adb logcat` output helps for crashes and Shizuku binding errors.
