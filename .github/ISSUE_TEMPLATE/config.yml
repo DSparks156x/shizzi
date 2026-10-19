@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Shizuku issues
+    url: https://github.com/RikkaApps/Shizuku/issues
+    about: Problems starting or authorizing Shizuku itself belong upstream.
