@@ -49,6 +49,8 @@ class DownstreamControl(private val context: Context) {
     fun stopWifiTethering(): Boolean = stopTethering(listOf(TetheringType.WIFI))
 
     fun stopTethering(types: Collection<TetheringType>): Boolean {
+        if (types.isEmpty()) return true
+
         val method = runCatching {
             managerClass.getMethod("stopTethering", Int::class.javaPrimitiveType)
         }.getOrElse { return false }

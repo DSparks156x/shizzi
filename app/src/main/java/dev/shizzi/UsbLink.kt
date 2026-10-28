@@ -11,7 +11,10 @@ interface UsbLink {
     fun startTethering(): Pair<Boolean, String>
 }
 
-class AndroidUsbLink(private val context: Context) : UsbLink {
+class AndroidUsbLink(
+    private val context: Context,
+    private val started: StartedDownstreams,
+) : UsbLink {
 
     private val inspector = UpstreamInspector()
 
@@ -22,8 +25,11 @@ class AndroidUsbLink(private val context: Context) : UsbLink {
         return parseUsbHostConnected(observation.rawOutput)
     }
 
-    override fun startTethering(): Pair<Boolean, String> =
-        DownstreamControl(context).startTethering(TetheringType.USB)
+    override fun startTethering(): Pair<Boolean, String> {
+        val outcome = DownstreamControl(context).startTethering(TetheringType.USB)
+        if (outcome.first) started.add(TetheringType.USB)
+        return outcome
+    }
 }
 
 private val DEVICE_CONNECTED_PATTERN = Regex("""^\s*connected=(true|false)\s*$""", RegexOption.MULTILINE)

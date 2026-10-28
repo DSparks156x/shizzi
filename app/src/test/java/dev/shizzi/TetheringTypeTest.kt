@@ -18,4 +18,26 @@ class TetheringTypeTest {
             assertEquals(name, TetheringType.WIFI, tetheringTypeOf(name))
         }
     }
+
+    @Test
+    fun `restarts usb tethering that is already running`() {
+        val running = DownstreamReading.Tethered(listOf("ncm0"))
+
+        assertEquals(listOf(TetheringType.USB), typesToRestart(listOf(TetheringType.USB), running))
+    }
+
+    @Test
+    fun `leaves idle usb alone but still restarts the hotspot`() {
+        val types = listOf(TetheringType.WIFI, TetheringType.USB)
+
+        assertEquals(listOf(TetheringType.WIFI), typesToRestart(types, DownstreamReading.None))
+    }
+
+    @Test
+    fun `stops usb when its state cannot be read`() {
+        assertEquals(
+            listOf(TetheringType.USB),
+            typesToRestart(listOf(TetheringType.USB), DownstreamReading.Unknown),
+        )
+    }
 }

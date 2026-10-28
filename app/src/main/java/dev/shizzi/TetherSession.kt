@@ -23,7 +23,8 @@ class TetherSession(private val context: Context) {
     private var watchdog: SessionWatchdog? = null
     private val teardown = SessionTeardown(context)
     private val downstream = DownstreamInspector()
-    private val usbLink = AndroidUsbLink(context)
+    private val started = StartedDownstreams()
+    private val usbLink = AndroidUsbLink(context, started)
     private var usbDownstream = UsbDownstream(UsbTethering.NEVER, usbLink)
     private val vpn = VpnUpstream(context) { problem -> tearDownAfter(problem) }
 
@@ -90,7 +91,7 @@ class TetherSession(private val context: Context) {
         activeSince = System.currentTimeMillis()
         detail = "tethered clients routing through $name"
 
-        teardown.installShutdownHook(usbTethering.types)
+        teardown.installShutdownHook(started)
         startWatchdog(name)
         return status()
     }
@@ -141,18 +142,20 @@ class TetherSession(private val context: Context) {
     private fun restartDownstream() {
         val control = DownstreamControl(context)
         val types = usbDownstream.typesToStart()
-        control.stopTethering(types)
+        val usbReading = downstream.findTetheredDownstream(listOf(TetheringType.USB))
+        control.stopTethering(typesToRestart(types, usbReading))
 
-        val (started, failed) = types
+        val (succeeded, failed) = types
             .associateWith(control::startTethering)
             .entries
             .partition { (_, outcome) -> outcome.first }
+        succeeded.forEach { (type, _) -> started.add(type) }
 
         val failures = failed.map { (type, outcome) -> "${type.label} did not start (${outcome.second})" }
-        check(started.isNotEmpty()) { "restartDownstream: ${failures.joinToString("; ")}" }
+        check(succeeded.isNotEmpty()) { "restartDownstream: ${failures.joinToString("; ")}" }
 
         failures.forEach(SessionLog::warn)
-        awaitDownstreamTethered(started.map { it.key })
+        awaitDownstreamTethered(succeeded.map { it.key })
     }
 
     private fun awaitDownstreamTethered(types: List<TetheringType>) {
@@ -195,7 +198,8 @@ class TetherSession(private val context: Context) {
 
         val summary = if (activeSince == 0L) null else sessionSummary()
 
-        val downstreamProblem = teardown.releaseDownstream(usbTethering.types)
+        val downstreamProblem = teardown.releaseDownstream(started.types)
+        started.clear()
 
         teardown.releaseUpstreamSelection(interfaceName)
 

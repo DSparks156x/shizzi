@@ -13,3 +13,11 @@ fun tetheringTypeOf(interfaceName: String): TetheringType = when {
     USB_INTERFACE_PATTERN.matches(interfaceName) -> TetheringType.USB
     else -> TetheringType.WIFI
 }
+
+/**
+ * The downstreams to stop before starting [types]. Stopping USB tethering with
+ * nothing running can reset the USB function, but starting it while it runs
+ * fails as a duplicate request, so USB is stopped unless it is known to be down.
+ */
+fun typesToRestart(types: List<TetheringType>, usbReading: DownstreamReading): List<TetheringType> =
+    types.filter { type -> type != TetheringType.USB || usbReading != DownstreamReading.None }

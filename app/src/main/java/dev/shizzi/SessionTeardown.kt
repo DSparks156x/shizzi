@@ -39,10 +39,10 @@ class SessionTeardown(private val context: Context) {
     private val inspector = UpstreamInspector()
     private var shutdownHook: Thread? = null
 
-    fun installShutdownHook(types: Collection<TetheringType>) {
+    fun installShutdownHook(started: StartedDownstreams) {
         val hook = Thread {
             SessionLog.warn("process exiting with session active; dropping downstream")
-            runCatching { DownstreamControl(context).stopTethering(types) }
+            runCatching { DownstreamControl(context).stopTethering(started.types) }
         }
 
         runCatching { Runtime.getRuntime().addShutdownHook(hook) }
