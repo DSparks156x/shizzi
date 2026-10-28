@@ -106,6 +106,10 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch { settingsStore.setVpnMode(mode) }
     }
 
+    fun setDownstreamMode(mode: DownstreamMode) {
+        viewModelScope.launch { settingsStore.setDownstreamMode(mode) }
+    }
+
     fun setTheme(choice: ThemeChoice) {
         viewModelScope.launch { settingsStore.setTheme(choice) }
     }

@@ -19,25 +19,41 @@ class TetherSession(private val context: Context) {
 
     private var activeSince: Long = 0
     private var vpnMode = VpnMode.AUTO
+    private var downstreamMode = DownstreamMode.WIFI
     private var watchdog: SessionWatchdog? = null
     private val teardown = SessionTeardown(context)
     private val downstream = DownstreamInspector()
+    private var usbReconnect = UsbReconnect()
     private val vpn = VpnUpstream(context) { problem -> tearDownAfter(problem) }
 
     val isActive: Boolean get() = state == SessionState.ACTIVE
 
-    fun start(mode: VpnMode = VpnMode.AUTO): String {
+    fun start(mode: VpnMode = VpnMode.AUTO, downstream: DownstreamMode = DownstreamMode.WIFI): String {
         if (isActive) return status()
 
         vpnMode = mode
+        downstreamMode = downstream
+        usbReconnect = UsbReconnect(SessionLog::info)
         state = SessionState.STARTING
-        SessionLog.info("session start requested (vpn mode ${mode.name.lowercase()})")
+        SessionLog.info(
+            "session start requested (vpn mode ${mode.name.lowercase()}, " +
+                "downstream ${downstream.name.lowercase()})",
+        )
 
         SessionLog.info(
             "device: ${Build.MANUFACTURER} ${Build.MODEL}, " +
                 "android ${Build.VERSION.RELEASE} (sdk ${Build.VERSION.SDK_INT}), " +
                 "contract ${TetherService.CONTRACT_VERSION}",
         )
+
+        // Like the greyed-out stock toggle: no cable means nothing to share
+        // with, so refuse before bringing anything up.
+        if (downstream == DownstreamMode.USB && isUsbHostConnected() == false) {
+            SessionLog.warn("start refused: no USB cable connected")
+            state = SessionState.ERROR
+            detail = NO_USB_CABLE
+            return status()
+        }
 
         return runCatching { bringUp() }
             .getOrElse { failure ->
@@ -74,7 +90,7 @@ class TetherSession(private val context: Context) {
         activeSince = System.currentTimeMillis()
         detail = "tethered clients routing through $name"
 
-        teardown.installShutdownHook()
+        teardown.installShutdownHook(downstreamMode.types)
         startWatchdog(name)
         return status()
     }
@@ -92,12 +108,45 @@ class TetherSession(private val context: Context) {
     }
 
     private fun startWatchdog(name: String) {
-        val guard = SessionWatchdog(name) { problem ->
-            SessionLog.warn("upstream drift: $problem")
+        val guard = SessionWatchdog(name, checkDownstream = ::tendUsbDownstream) { problem ->
+            SessionLog.warn("ending session: $problem")
             tearDownAfter(problem)
         }
         watchdog = guard
         guard.start()
+    }
+
+    /**
+     * Restarts USB tethering when the cable returns. Gives up after a while
+     * without one, unless another of the session's downstreams is still up.
+     */
+    private fun tendUsbDownstream(): DownstreamHealth {
+        if (TetheringType.USB !in downstreamMode.types) return DownstreamHealth.Up
+
+        val isTethered = downstream.findTetheredDownstream(listOf(TetheringType.USB)) != null
+        val now = System.currentTimeMillis()
+
+        if (usbReconnect.shouldRestart(isTethered, isUsbHostConnected() == true, now)) {
+            val (didStart, startDetail) = DownstreamControl(context).startTethering(TetheringType.USB)
+            if (!didStart) SessionLog.warn("usb tethering did not restart ($startDetail)")
+        }
+        if (isTethered) return DownstreamHealth.Up
+
+        val others = downstreamMode.types - TetheringType.USB
+        val isOtherUp = others.isNotEmpty() && downstream.findTetheredDownstream(others) != null
+        if (usbReconnect.hasGivenUp(now) && !isOtherUp) {
+            val minutes = UsbReconnect.GIVE_UP_AFTER_MS / 60_000
+            return DownstreamHealth.Lost("no USB cable for $minutes minutes")
+        }
+        return DownstreamHealth.Awaiting
+    }
+
+    /** Null when `dumpsys usb` could not be read. */
+    private fun isUsbHostConnected(): Boolean? {
+        val observation = inspector.observeUsb()
+        if (observation.didTimeout) return null
+
+        return parseUsbHostConnected(observation.rawOutput)
     }
 
     private fun tearDownAfter(problem: String) {
@@ -120,28 +169,36 @@ class TetherSession(private val context: Context) {
 
     private fun restartDownstream() {
         val control = DownstreamControl(context)
-        control.stopWifiTethering()
+        val types = downstreamMode.types
+        control.stopTethering(types)
 
-        val (didStart, startDetail) = control.startWifiTethering()
-        check(didStart) { "restartDownstream: hotspot did not start ($startDetail)" }
+        val (started, failed) = types
+            .associateWith(control::startTethering)
+            .entries
+            .partition { (_, outcome) -> outcome.first }
 
-        awaitDownstreamTethered()
+        val failures = failed.map { (type, outcome) -> "${type.label} did not start (${outcome.second})" }
+        check(started.isNotEmpty()) { "restartDownstream: ${failures.joinToString("; ")}" }
+
+        failures.forEach(SessionLog::warn)
+        awaitDownstreamTethered(started.map { it.key })
     }
 
-    private fun awaitDownstreamTethered() {
+    private fun awaitDownstreamTethered(types: List<TetheringType>) {
         val deadline = System.currentTimeMillis() + DOWNSTREAM_SETTLE_MS
         val downstream = DownstreamInspector()
 
         while (System.currentTimeMillis() < deadline) {
 
-            if (downstream.findTetheredDownstream() != null) {
+            if (downstream.findTetheredDownstream(types) != null) {
                 SessionLog.info("downstream tethered")
                 return
             }
             Thread.sleep(DOWNSTREAM_POLL_MS)
         }
 
-        SessionLog.warn("downstream not tethered after ${DOWNSTREAM_SETTLE_MS}ms; continuing")
+        val hint = if (TetheringType.USB in types) " (is a USB cable connected to a computer?)" else ""
+        SessionLog.warn("downstream not tethered after ${DOWNSTREAM_SETTLE_MS}ms$hint; continuing")
     }
 
     private fun verifyUpstream(name: String) {
@@ -167,7 +224,7 @@ class TetherSession(private val context: Context) {
 
         val summary = if (activeSince == 0L) null else sessionSummary()
 
-        val downstreamProblem = teardown.releaseDownstream()
+        val downstreamProblem = teardown.releaseDownstream(downstreamMode.types)
 
         teardown.releaseUpstreamSelection(interfaceName)
 
@@ -216,7 +273,7 @@ class TetherSession(private val context: Context) {
 
     fun status(): String = JSONObject().apply {
         put("state", state.name)
-        put("detail", detail)
+        put("detail", if (isActive && usbReconnect.isWaiting) "waiting for the USB cable" else detail)
         put("interface", interfaceName ?: JSONObject.NULL)
 
         put("isVpnBound", vpn.isBound)
@@ -225,7 +282,7 @@ class TetherSession(private val context: Context) {
         val traffic = interfaceName?.let(InterfaceCounters::read) ?: Traffic()
         put("bytesUp", traffic.up)
         put("bytesDown", traffic.down)
-        put("clientCount", if (isActive) downstream.countDevices() else 0)
+        put("clientCount", if (isActive) downstream.countDevices(downstreamMode.types) else 0)
     }.toString()
 
     private fun isVpnBypassed(): Boolean {
@@ -255,5 +312,7 @@ class TetherSession(private val context: Context) {
 
         const val DOWNSTREAM_SETTLE_MS = 10_000L
         const val DOWNSTREAM_POLL_MS = 500L
+
+        const val NO_USB_CABLE = "Connect the phone to a computer with a USB cable first"
     }
 }

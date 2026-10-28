@@ -5,6 +5,12 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **USB tethering.** A `Share over` setting picks `Wi-Fi`, `USB`, or both.
+  USB brings up tethering over the cable through the same test-network
+  upstream; teardown only stops the downstreams the session started.
+
 ## [0.4.0-rc.3] - 2026-09-13
 
 Adds a quick settings tile and an intent API for starting and stopping sessions

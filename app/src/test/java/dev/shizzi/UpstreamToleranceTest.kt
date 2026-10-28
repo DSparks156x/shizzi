@@ -83,4 +83,15 @@ class UpstreamToleranceTest {
         assertNull(guard.judge(UpstreamReading.DRIFTED, drifted))
         assertNotNull(guard.judge(UpstreamReading.DRIFTED, drifted))
     }
+
+    @Test
+    fun `forgiving clears strikes so a later absence starts over`() {
+        val guard = tolerance()
+        repeat(11) { assertNull(guard.judge(UpstreamReading.ABSENT, emptyList())) }
+
+        guard.forgive()
+
+        repeat(11) { assertNull(guard.judge(UpstreamReading.ABSENT, emptyList())) }
+        assertNotNull(guard.judge(UpstreamReading.ABSENT, emptyList()))
+    }
 }

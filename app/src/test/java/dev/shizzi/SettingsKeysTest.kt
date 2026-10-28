@@ -64,6 +64,25 @@ class SettingsKeysTest {
     }
 
     @Test
+    fun `reads a stored downstream mode`() {
+        val stored = preferencesOf(DOWNSTREAM_MODE to DownstreamMode.USB.name)
+
+        assertEquals(DownstreamMode.USB, toSettings(stored).downstreamMode)
+    }
+
+    @Test
+    fun `defaults to wifi when no downstream mode is stored`() {
+        assertEquals(DownstreamMode.WIFI, toSettings(preferencesOf()).downstreamMode)
+    }
+
+    @Test
+    fun `falls back to wifi when the downstream mode is unreadable`() {
+        val stored = preferencesOf(DOWNSTREAM_MODE to "carrier pigeon")
+
+        assertEquals(DownstreamMode.WIFI, toSettings(stored).downstreamMode)
+    }
+
+    @Test
     fun `absent appearance keys read as defaults`() {
         val settings = toSettings(preferencesOf())
 

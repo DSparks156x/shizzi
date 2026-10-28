@@ -26,6 +26,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import dev.shizzi.AppPermission
+import dev.shizzi.DownstreamMode
 import dev.shizzi.PermissionStatus
 import dev.shizzi.ShizukuState
 import dev.shizzi.VpnMode
@@ -55,6 +56,7 @@ data class SettingsState(
     val customAccents: List<Int>,
     val isLogging: Boolean,
     val vpnMode: VpnMode,
+    val downstreamMode: DownstreamMode,
     val isRunningDiagnostics: Boolean,
     val automation: AutomationState,
 )
@@ -66,6 +68,7 @@ data class SettingsActions(
     val onAddCustomAccent: (Int) -> Unit,
     val onSetLogging: (Boolean) -> Unit,
     val onSetVpnMode: (VpnMode) -> Unit,
+    val onSetDownstreamMode: (DownstreamMode) -> Unit,
     val onOpenLog: () -> Unit,
     val onRunProbes: () -> Unit,
     val onGrantPermission: (AppPermission) -> Unit,
@@ -120,6 +123,10 @@ private fun settingsSections(
     actions: SettingsActions,
     toasts: ToastState,
 ): List<SettingsSectionSpec> = listOf(
+    SettingsSectionSpec("Sharing") {
+        DownstreamSection(selected = state.downstreamMode, onSelect = actions.onSetDownstreamMode)
+    },
+
     SettingsSectionSpec("Appearance") {
         AppearanceSection(
             state = AppearanceState(

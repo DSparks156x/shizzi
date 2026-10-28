@@ -3,8 +3,16 @@ package dev.shizzi
 import android.util.Log
 import java.util.concurrent.atomic.AtomicBoolean
 
+/** What the session found when the watchdog asked about its downstream. */
+sealed interface DownstreamHealth {
+    object Up : DownstreamHealth
+    object Awaiting : DownstreamHealth
+    class Lost(val problem: String) : DownstreamHealth
+}
+
 class SessionWatchdog(
     private val expectedInterface: String,
+    private val checkDownstream: () -> DownstreamHealth = { DownstreamHealth.Up },
     private val onDrift: (String) -> Unit,
 ) {
 
@@ -54,6 +62,17 @@ class SessionWatchdog(
         val names = observation.liveInterfaceNames(expectedInterface)
         val reading = classifyUpstream(names, expectedInterface, observation.didTimeout)
 
+        // Asked every check, not only on ABSENT, so the session also sees the
+        // downstream come back once the upstream is healthy again.
+        val health = checkDownstream()
+        if (health is DownstreamHealth.Lost) return health.problem
+
+        // Tethering picks no upstream while no downstream is up, and an absent
+        // upstream forwards nothing, so waiting out a pulled cable is safe.
+        if (reading == UpstreamReading.ABSENT && health == DownstreamHealth.Awaiting) {
+            tolerance.forgive()
+            return null
+        }
         return tolerance.judge(reading, names)
     }
 

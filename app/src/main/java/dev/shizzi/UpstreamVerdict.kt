@@ -34,6 +34,12 @@ class UpstreamTolerance(
     private var strikes = 0
     private var lastReading = UpstreamReading.HEALTHY
 
+    /** Clears strikes for a reading that is expected, such as while a downstream is away. */
+    fun forgive() {
+        strikes = 0
+        lastReading = UpstreamReading.HEALTHY
+    }
+
     fun judge(reading: UpstreamReading, names: List<String>): String? {
         if (reading == UpstreamReading.HEALTHY) {
             strikes = 0
