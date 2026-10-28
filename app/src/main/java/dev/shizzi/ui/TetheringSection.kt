@@ -6,31 +6,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import dev.shizzi.DownstreamMode
+import dev.shizzi.UsbTethering
 
 @Composable
-fun DownstreamSection(selected: DownstreamMode, onSelect: (DownstreamMode) -> Unit) {
+fun TetheringSection(selected: UsbTethering, onSelect: (UsbTethering) -> Unit) {
     val context = LocalContext.current
     var isPickerOpen by remember { mutableStateOf(false) }
 
     SettingsChoice(
-        label = SettingsText(title = "Share over"),
-        value = downstreamModeLabel(selected),
+        label = SettingsText(title = "USB tethering"),
+        value = usbTetheringLabel(selected),
         onClick = { isPickerOpen = true },
     )
 
     SettingsAction(
-        label = SettingsText(
-            title = "Hotspot name & password",
-            subtitle = "Band and security are set in Android settings",
-        ),
+        label = SettingsText(title = "System settings"),
         isExternal = true,
         onClick = context::openTetherSettings,
     )
 
     if (!isPickerOpen) return
 
-    DownstreamModePicker(
+    UsbTetheringPicker(
         selected = selected,
         onSelect = onSelect,
         onDismiss = { isPickerOpen = false },

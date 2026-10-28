@@ -206,11 +206,11 @@ class TetherClient {
     suspend fun start(
         logging: Boolean,
         vpnMode: VpnMode,
-        downstreamMode: DownstreamMode,
+        usbTethering: UsbTethering,
     ): String = withContext(Dispatchers.IO) {
         val bound = service()
         verifyContract(bound)
-        bound.start(logging, vpnMode.name, downstreamMode.name)
+        bound.start(logging, vpnMode.name, usbTethering.name)
     }
 
     fun setLogging(enabled: Boolean) {

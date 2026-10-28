@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
                             onAddCustomAccent = viewModel::addCustomAccent,
                             onSetLogging = viewModel::setLogging,
                             onSetVpnMode = viewModel::setVpnMode,
-                            onSetDownstreamMode = viewModel::setDownstreamMode,
+                            onSetUsbTethering = viewModel::setUsbTethering,
                             onRunProbes = viewModel::runProbes,
                             onDismissDiagnostics = viewModel::dismissDiagnostics,
                             onClearLog = viewModel::clearLog,

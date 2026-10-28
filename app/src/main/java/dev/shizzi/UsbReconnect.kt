@@ -31,7 +31,7 @@ class UsbReconnect(private val onEvent: (String) -> Unit = {}) {
         }
 
         if (!isWaiting) {
-            onEvent("usb tethering dropped; waiting for the cable")
+            onEvent("usb tethering down; waiting for a usb host")
             waitingSince = now
         }
         isWaiting = true

@@ -64,22 +64,22 @@ class SettingsKeysTest {
     }
 
     @Test
-    fun `reads a stored downstream mode`() {
-        val stored = preferencesOf(DOWNSTREAM_MODE to DownstreamMode.USB.name)
+    fun `reads a stored usb tethering mode`() {
+        val stored = preferencesOf(USB_TETHERING to UsbTethering.ALWAYS.name)
 
-        assertEquals(DownstreamMode.USB, toSettings(stored).downstreamMode)
+        assertEquals(UsbTethering.ALWAYS, toSettings(stored).usbTethering)
     }
 
     @Test
-    fun `defaults to wifi when no downstream mode is stored`() {
-        assertEquals(DownstreamMode.WIFI, toSettings(preferencesOf()).downstreamMode)
+    fun `defaults to never when no usb tethering mode is stored`() {
+        assertEquals(UsbTethering.NEVER, toSettings(preferencesOf()).usbTethering)
     }
 
     @Test
-    fun `falls back to wifi when the downstream mode is unreadable`() {
-        val stored = preferencesOf(DOWNSTREAM_MODE to "carrier pigeon")
+    fun `falls back to never when the usb tethering mode is unreadable`() {
+        val stored = preferencesOf(USB_TETHERING to "carrier pigeon")
 
-        assertEquals(DownstreamMode.WIFI, toSettings(stored).downstreamMode)
+        assertEquals(UsbTethering.NEVER, toSettings(stored).usbTethering)
     }
 
     @Test

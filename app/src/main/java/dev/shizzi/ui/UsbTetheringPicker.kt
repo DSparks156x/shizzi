@@ -16,38 +16,38 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import dev.shizzi.DownstreamMode
+import dev.shizzi.UsbTethering
 import dev.shizzi.ui.theme.ShizziTheme
 
 private val CheckSize = 20.dp
 
-fun downstreamModeLabel(mode: DownstreamMode): String = when (mode) {
-    DownstreamMode.WIFI -> "Wi-Fi"
-    DownstreamMode.USB -> "USB"
-    DownstreamMode.BOTH -> "Wi-Fi and USB"
+fun usbTetheringLabel(mode: UsbTethering): String = when (mode) {
+    UsbTethering.AUTO -> "Auto"
+    UsbTethering.ALWAYS -> "Always"
+    UsbTethering.NEVER -> "Never"
 }
 
-private fun descriptionOf(mode: DownstreamMode): String = when (mode) {
-    DownstreamMode.WIFI -> "Share through your hotspot"
-    DownstreamMode.USB -> "Share with a computer over a USB cable"
-    DownstreamMode.BOTH -> "Share through your hotspot and over USB"
+private fun descriptionOf(mode: UsbTethering): String = when (mode) {
+    UsbTethering.AUTO -> "Also share over USB when a cable is connected"
+    UsbTethering.ALWAYS -> "Share over USB only; requires a cable"
+    UsbTethering.NEVER -> "Share through the hotspot only"
 }
 
 @Composable
-fun DownstreamModePicker(
-    selected: DownstreamMode,
-    onSelect: (DownstreamMode) -> Unit,
+fun UsbTetheringPicker(
+    selected: UsbTethering,
+    onSelect: (UsbTethering) -> Unit,
     onDismiss: () -> Unit,
 ) {
     ThemedBottomSheet(onDismiss = onDismiss) {
         Text(
-            text = "Share over",
+            text = "USB tethering",
             style = ShizziTheme.typography.heading,
             color = ShizziTheme.colors.onSurface,
         )
 
-        DownstreamMode.entries.forEach { mode ->
-            DownstreamModeOption(
+        UsbTethering.entries.forEach { mode ->
+            UsbTetheringOption(
                 mode = mode,
                 isSelected = mode == selected,
                 onSelect = {
@@ -62,8 +62,8 @@ fun DownstreamModePicker(
 }
 
 @Composable
-private fun DownstreamModeOption(
-    mode: DownstreamMode,
+private fun UsbTetheringOption(
+    mode: UsbTethering,
     isSelected: Boolean,
     onSelect: () -> Unit,
 ) {
@@ -76,7 +76,7 @@ private fun DownstreamModeOption(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = downstreamModeLabel(mode),
+                text = usbTetheringLabel(mode),
                 style = ShizziTheme.typography.subheading,
                 color = ShizziTheme.colors.onSurface,
             )

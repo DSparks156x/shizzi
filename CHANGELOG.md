@@ -7,9 +7,10 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- **USB tethering.** A `Share over` setting picks `Wi-Fi`, `USB`, or both.
-  USB brings up tethering over the cable through the same test-network
-  upstream; teardown only stops the downstreams the session started.
+- **USB tethering.** A `USB tethering` setting shares over a USB cable through
+  the same test-network upstream. `Auto` adds USB alongside the hotspot
+  whenever a cable is connected, `Always` shares over USB only, and `Never`
+  keeps the hotspot alone.
 
 ## [0.4.0-rc.3] - 2026-09-13
 
