@@ -8,15 +8,10 @@ import org.junit.Test
 
 class UsbDownstreamTest {
 
-    private class FakeUsbLink(
-        var isConnected: Boolean? = false,
-        var isUp: Boolean? = false,
-    ) : UsbLink {
+    private class FakeUsbLink(var isConnected: Boolean? = false) : UsbLink {
         var startCount = 0
 
         override fun isHostConnected(): Boolean? = isConnected
-
-        override fun isTethered(): Boolean? = isUp
 
         override fun startTethering(): Pair<Boolean, String> {
             startCount++
@@ -63,17 +58,17 @@ class UsbDownstreamTest {
     fun `always awaits a pulled cable before giving up`() {
         val usb = UsbDownstream(UsbTethering.ALWAYS, FakeUsbLink())
 
-        assertEquals(DownstreamHealth.Awaiting, usb.check(now = 0))
+        assertEquals(DownstreamHealth.Awaiting, usb.check(0, DownstreamReading.None))
         assertTrue(usb.isWaitingForCable)
-        assertTrue(usb.check(now = UsbReconnect.GIVE_UP_AFTER_MS) is DownstreamHealth.Lost)
+        assertTrue(usb.check(UsbReconnect.GIVE_UP_AFTER_MS, DownstreamReading.None) is DownstreamHealth.Lost)
     }
 
     @Test
     fun `auto never ends the session over a missing cable`() {
         val usb = UsbDownstream(UsbTethering.AUTO, FakeUsbLink())
 
-        assertEquals(DownstreamHealth.Up, usb.check(now = 0))
-        assertEquals(DownstreamHealth.Up, usb.check(now = UsbReconnect.GIVE_UP_AFTER_MS))
+        assertEquals(DownstreamHealth.Up, usb.check(0, DownstreamReading.None))
+        assertEquals(DownstreamHealth.Up, usb.check(UsbReconnect.GIVE_UP_AFTER_MS, DownstreamReading.None))
         assertFalse(usb.isWaitingForCable)
     }
 
@@ -81,10 +76,10 @@ class UsbDownstreamTest {
     fun `restarts usb tethering once a cable is connected`() {
         val link = FakeUsbLink()
         val usb = UsbDownstream(UsbTethering.AUTO, link)
-        usb.check(now = 0)
+        usb.check(0, DownstreamReading.None)
 
         link.isConnected = true
-        usb.check(now = 5_000)
+        usb.check(5_000, DownstreamReading.None)
 
         assertEquals(1, link.startCount)
     }
@@ -93,16 +88,27 @@ class UsbDownstreamTest {
     fun `never leaves usb alone`() {
         val link = FakeUsbLink(isConnected = true)
 
-        assertEquals(DownstreamHealth.Up, UsbDownstream(UsbTethering.NEVER, link).check(now = 0))
+        assertEquals(DownstreamHealth.Up, UsbDownstream(UsbTethering.NEVER, link).check(0, DownstreamReading.None))
         assertEquals(0, link.startCount)
     }
 
     @Test
     fun `an unreadable tethering state neither restarts nor gives up`() {
-        val link = FakeUsbLink(isConnected = true, isUp = null)
+        val link = FakeUsbLink(isConnected = true)
         val usb = UsbDownstream(UsbTethering.ALWAYS, link)
 
-        assertEquals(DownstreamHealth.Up, usb.check(now = UsbReconnect.GIVE_UP_AFTER_MS))
+        assertEquals(DownstreamHealth.Up, usb.check(UsbReconnect.GIVE_UP_AFTER_MS, DownstreamReading.Unknown))
         assertEquals(0, link.startCount)
+    }
+
+    @Test
+    fun `does not read the cable while usb is tethered`() {
+        val link = object : UsbLink {
+            override fun isHostConnected(): Boolean? = error("read the cable while tethered")
+            override fun startTethering(): Pair<Boolean, String> = error("restarted while tethered")
+        }
+        val usb = UsbDownstream(UsbTethering.ALWAYS, link)
+
+        assertEquals(DownstreamHealth.Up, usb.check(0, DownstreamReading.Tethered(listOf("ncm0"))))
     }
 }

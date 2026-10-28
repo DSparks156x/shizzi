@@ -108,7 +108,10 @@ class TetherSession(private val context: Context) {
     }
 
     private fun startWatchdog(name: String) {
-        val checkUsb = { usbDownstream.check(System.currentTimeMillis()) }
+        val checkUsb = { tethering: UpstreamObservation ->
+            val usbReading = readDownstream(tethering, listOf(TetheringType.USB))
+            usbDownstream.check(System.currentTimeMillis(), usbReading)
+        }
         val guard = SessionWatchdog(name, checkDownstream = checkUsb) { problem ->
             SessionLog.warn("ending session: $problem")
             tearDownAfter(problem)

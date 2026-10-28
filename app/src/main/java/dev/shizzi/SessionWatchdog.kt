@@ -12,7 +12,7 @@ sealed interface DownstreamHealth {
 
 class SessionWatchdog(
     private val expectedInterface: String,
-    private val checkDownstream: () -> DownstreamHealth = { DownstreamHealth.Up },
+    private val checkDownstream: (UpstreamObservation) -> DownstreamHealth = { DownstreamHealth.Up },
     private val onDrift: (String) -> Unit,
 ) {
 
@@ -64,7 +64,7 @@ class SessionWatchdog(
 
         // Asked every check, not only on ABSENT, so the session also sees the
         // downstream come back once the upstream is healthy again.
-        val health = checkDownstream()
+        val health = checkDownstream(observation)
         if (health is DownstreamHealth.Lost) return health.problem
 
         return tolerance.judge(reading, names, health)

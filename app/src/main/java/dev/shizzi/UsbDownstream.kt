@@ -30,13 +30,19 @@ class UsbDownstream(
         else -> setting.types
     }
 
-    /** Restarts USB tethering when a cable is connected; called on every watchdog check. */
-    fun check(now: Long): DownstreamHealth {
+    /**
+     * Restarts USB tethering when a cable is connected; called on every watchdog
+     * check with that check's reading of the USB downstream.
+     */
+    fun check(now: Long, usbReading: DownstreamReading): DownstreamHealth {
         if (setting == UsbTethering.NEVER) return DownstreamHealth.Up
 
         // Unreadable: no grounds to restart USB or to give up on it.
-        val isTethered = link.isTethered() ?: return DownstreamHealth.Up
-        if (reconnect.shouldRestart(isTethered, link.isHostConnected() == true, now)) {
+        if (usbReading == DownstreamReading.Unknown) return DownstreamHealth.Up
+
+        val isTethered = usbReading is DownstreamReading.Tethered
+        val isCableConnected = !isTethered && link.isHostConnected() == true
+        if (reconnect.shouldRestart(isTethered, isCableConnected, now)) {
             val (didStart, startDetail) = link.startTethering()
             if (!didStart) onEvent("usb tethering did not restart ($startDetail)")
         }
