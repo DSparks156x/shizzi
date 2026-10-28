@@ -34,13 +34,17 @@ class UpstreamTolerance(
     private var strikes = 0
     private var lastReading = UpstreamReading.HEALTHY
 
-    /** Clears strikes for a reading that is expected, such as while a downstream is away. */
-    fun forgive() {
-        strikes = 0
-        lastReading = UpstreamReading.HEALTHY
-    }
+    fun judge(
+        observed: UpstreamReading,
+        names: List<String>,
+        downstream: DownstreamHealth = DownstreamHealth.Up,
+    ): String? {
+        // Tethering picks no upstream while no downstream is up, and an absent
+        // upstream forwards nothing, so waiting out a pulled cable is safe.
+        val isAwaitingDownstream = downstream == DownstreamHealth.Awaiting
+        val isExpectedAbsence = observed == UpstreamReading.ABSENT && isAwaitingDownstream
+        val reading = if (isExpectedAbsence) UpstreamReading.HEALTHY else observed
 
-    fun judge(reading: UpstreamReading, names: List<String>): String? {
         if (reading == UpstreamReading.HEALTHY) {
             strikes = 0
             lastReading = reading

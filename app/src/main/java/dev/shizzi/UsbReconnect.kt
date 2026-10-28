@@ -52,16 +52,3 @@ class UsbReconnect(private val onEvent: (String) -> Unit = {}) {
         const val GIVE_UP_AFTER_MS = 10 * 60_000L
     }
 }
-
-private val DEVICE_CONNECTED_PATTERN = Regex("""^\s*connected=(true|false)\s*$""", RegexOption.MULTILINE)
-
-/** Reads whether a USB host is attached from `dumpsys usb`'s device_manager block. */
-fun parseUsbHostConnected(output: String): Boolean? {
-    val start = output.indexOf("device_manager={")
-    if (start < 0) return null
-
-    val end = output.indexOf("host_manager={", start).takeIf { it > start } ?: output.length
-    val block = output.substring(start, end)
-
-    return DEVICE_CONNECTED_PATTERN.find(block)?.groupValues?.get(1)?.toBooleanStrictOrNull()
-}

@@ -67,13 +67,7 @@ class SessionWatchdog(
         val health = checkDownstream()
         if (health is DownstreamHealth.Lost) return health.problem
 
-        // Tethering picks no upstream while no downstream is up, and an absent
-        // upstream forwards nothing, so waiting out a pulled cable is safe.
-        if (reading == UpstreamReading.ABSENT && health == DownstreamHealth.Awaiting) {
-            tolerance.forgive()
-            return null
-        }
-        return tolerance.judge(reading, names)
+        return tolerance.judge(reading, names, health)
     }
 
     private companion object {
