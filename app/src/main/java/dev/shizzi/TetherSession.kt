@@ -258,7 +258,8 @@ class TetherSession(private val context: Context) {
 
     fun status(): String = JSONObject().apply {
         put("state", state.name)
-        put("detail", if (isActive && usbDownstream.isWaitingForUsb) "waiting for the USB connection" else detail)
+        put("detail", detail)
+        put("isWaitingForUsb", isActive && usbDownstream.isWaitingForUsb)
         put("interface", interfaceName ?: JSONObject.NULL)
 
         put("isVpnBound", vpn.isBound)
