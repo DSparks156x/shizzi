@@ -11,6 +11,7 @@ class DownstreamReadingTest {
           Tether state:
             ncm0 - TetheredState - lastError = 0
             wlan1 - TetheredState - lastError = 0
+            eth0 - TetheredState - lastError = 0
             rmnet0 - AvailableState - lastError = 0
     """.trimIndent()
 
@@ -37,5 +38,12 @@ class DownstreamReadingTest {
         val reading = readDownstream(observed("Tethering:\n  rmnet0 - AvailableState -"), TetheringType.entries)
 
         assertEquals(DownstreamReading.None, reading)
+    }
+
+    @Test
+    fun `an ethernet tether is not read as the hotspot`() {
+        val reading = readDownstream(observed(dump), listOf(TetheringType.WIFI))
+
+        assertEquals(listOf("wlan1"), (reading as DownstreamReading.Tethered).names)
     }
 }

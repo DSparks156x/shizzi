@@ -8,9 +8,16 @@ enum class TetheringType(val code: Int, val label: String) {
 
 private val USB_INTERFACE_PATTERN = Regex("""^(rndis|ncm|usb)\d*$""")
 
-/** Classifies a tethered interface; anything not USB-shaped counts as the hotspot. */
-fun tetheringTypeOf(interfaceName: String): TetheringType = when {
+private val UNSHARED_INTERFACE_PATTERN = Regex("""^(bt-pan|eth\d+)$""")
+
+/**
+ * Classifies a tethered interface. Null for Bluetooth and Ethernet tethering,
+ * which Shizzi neither starts nor stops; hotspot names vary by OEM, so anything
+ * else counts as the hotspot.
+ */
+fun tetheringTypeOf(interfaceName: String): TetheringType? = when {
     USB_INTERFACE_PATTERN.matches(interfaceName) -> TetheringType.USB
+    UNSHARED_INTERFACE_PATTERN.matches(interfaceName) -> null
     else -> TetheringType.WIFI
 }
 

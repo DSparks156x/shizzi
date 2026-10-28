@@ -1,6 +1,7 @@
 package dev.shizzi
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class TetheringTypeTest {
@@ -39,5 +40,12 @@ class TetheringTypeTest {
             listOf(TetheringType.USB),
             typesToRestart(listOf(TetheringType.USB), DownstreamReading.Unknown),
         )
+    }
+
+    @Test
+    fun `bluetooth and ethernet tethering are neither`() {
+        listOf("bt-pan", "eth0").forEach { name ->
+            assertNull(name, tetheringTypeOf(name))
+        }
     }
 }
