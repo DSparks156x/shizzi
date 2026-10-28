@@ -59,7 +59,7 @@ class UsbDownstreamTest {
         val usb = UsbDownstream(UsbTethering.ALWAYS, FakeUsbLink())
 
         assertEquals(DownstreamHealth.Awaiting, usb.check(0, DownstreamReading.None))
-        assertTrue(usb.isWaitingForCable)
+        assertTrue(usb.isWaitingForUsb)
         assertTrue(usb.check(UsbReconnect.GIVE_UP_AFTER_MS, DownstreamReading.None) is DownstreamHealth.Lost)
     }
 
@@ -69,7 +69,7 @@ class UsbDownstreamTest {
 
         assertEquals(DownstreamHealth.Up, usb.check(0, DownstreamReading.None))
         assertEquals(DownstreamHealth.Up, usb.check(UsbReconnect.GIVE_UP_AFTER_MS, DownstreamReading.None))
-        assertFalse(usb.isWaitingForCable)
+        assertFalse(usb.isWaitingForUsb)
     }
 
     @Test
@@ -110,5 +110,21 @@ class UsbDownstreamTest {
         val usb = UsbDownstream(UsbTethering.ALWAYS, link)
 
         assertEquals(DownstreamHealth.Up, usb.check(0, DownstreamReading.Tethered(listOf("ncm0"))))
+    }
+
+    @Test
+    fun `only always starts before usb is tethered`() {
+        assertTrue(UsbDownstream(UsbTethering.ALWAYS, FakeUsbLink()).canStartUntethered)
+        assertFalse(UsbDownstream(UsbTethering.AUTO, FakeUsbLink()).canStartUntethered)
+        assertFalse(UsbDownstream(UsbTethering.NEVER, FakeUsbLink()).canStartUntethered)
+    }
+
+    @Test
+    fun `always started before usb is up waits for it`() {
+        val link = FakeUsbLink(isConnected = true)
+        val usb = UsbDownstream(UsbTethering.ALWAYS, link)
+
+        assertEquals(DownstreamHealth.Awaiting, usb.check(0, DownstreamReading.None))
+        assertEquals(1, link.startCount)
     }
 }

@@ -12,9 +12,17 @@ class UsbDownstream(
 
     private val reconnect = UsbReconnect(onEvent)
 
-    /** Only Always waits on the cable; Auto keeps sharing over the hotspot. */
-    val isWaitingForCable: Boolean
+    /** Only Always waits on USB; Auto keeps sharing over the hotspot. */
+    val isWaitingForUsb: Boolean
         get() = setting == UsbTethering.ALWAYS && reconnect.isWaiting
+
+    /**
+     * Always has only USB, which can come up well after the cable does (the
+     * computer may first ask to allow it), so its start leaves the wait to
+     * [check] like an unplug.
+     */
+    val canStartUntethered: Boolean
+        get() = setting == UsbTethering.ALWAYS
 
     /** Like the greyed-out stock toggle: Always with no cable has nothing to share with. */
     fun startProblem(): String? = when {
