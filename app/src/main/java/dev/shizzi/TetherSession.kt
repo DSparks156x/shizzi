@@ -19,13 +19,19 @@ class TetherSession(private val context: Context) {
 
     private var activeSince: Long = 0
     private var vpnMode = VpnMode.AUTO
+
+    @Volatile
     private var usbTethering = UsbTethering.NEVER
+
     private var watchdog: SessionWatchdog? = null
     private val teardown = SessionTeardown(context)
     private val downstream = DownstreamInspector()
     private val started = StartedDownstreams()
     private val usbLink = AndroidUsbLink(context, started)
+
+    @Volatile
     private var usbDownstream = UsbDownstream(UsbTethering.NEVER, usbLink)
+
     private val vpn = VpnUpstream(context) { problem -> tearDownAfter(problem) }
 
     val isActive: Boolean get() = state == SessionState.ACTIVE

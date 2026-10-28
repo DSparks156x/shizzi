@@ -8,6 +8,7 @@ package dev.shizzi
  */
 class UsbReconnect(private val onEvent: (String) -> Unit = {}) {
 
+    @Volatile
     var isWaiting = false
         private set
 
