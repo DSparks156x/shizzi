@@ -64,6 +64,6 @@ class UsbDownstream(
     }
 
     companion object {
-        const val NO_USB_CABLE = "Connect the phone to a computer with a USB cable first"
+        const val NO_USB_CABLE = "Failed to start. USB connection required."
     }
 }
