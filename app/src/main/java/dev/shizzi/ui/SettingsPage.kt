@@ -124,7 +124,11 @@ private fun settingsSections(
     toasts: ToastState,
 ): List<SettingsSectionSpec> = listOf(
     SettingsSectionSpec("Tethering") {
-        TetheringSection(selected = state.usbTethering, onSelect = actions.onSetUsbTethering)
+        TetheringSection(
+            selected = state.usbTethering,
+            onSelect = actions.onSetUsbTethering,
+            toasts = toasts,
+        )
     },
 
     SettingsSectionSpec("Appearance") {
@@ -169,7 +173,7 @@ private fun settingsSections(
         DeveloperSection(isLogging = state.isLogging, actions = actions)
     },
 
-    SettingsSectionSpec("About") { AboutSection() },
+    SettingsSectionSpec("About") { AboutSection(toasts) },
 )
 
 /** Staggers each section in on first composition so the page assembles itself. */
@@ -240,24 +244,27 @@ private fun DeveloperSection(isLogging: Boolean, actions: SettingsActions) {
 }
 
 @Composable
-private fun AboutSection() {
+private fun AboutSection(toasts: ToastState) {
     val context = LocalContext.current
+    val open = { label: String, url: String ->
+        if (!context.openUrl(url)) toasts.show(unopenedToast(label))
+    }
 
     SettingsAction(
         label = SettingsText(title = "GitHub"),
         isExternal = true,
-        onClick = { context.openUrl(SOURCE_URL) },
+        onClick = { open("GitHub", SOURCE_URL) },
     )
 
     SettingsAction(
         label = SettingsText(title = "Report a bug"),
         isExternal = true,
-        onClick = { context.openUrl(ISSUE_URL) },
+        onClick = { open("the issue tracker", ISSUE_URL) },
     )
 
     SettingsAction(
         label = SettingsText(title = "Author", subtitle = "carlelieser.dev"),
         isExternal = true,
-        onClick = { context.openUrl(AUTHOR_URL) },
+        onClick = { open("carlelieser.dev", AUTHOR_URL) },
     )
 }

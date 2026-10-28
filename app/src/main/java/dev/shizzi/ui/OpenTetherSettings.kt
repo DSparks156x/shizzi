@@ -10,9 +10,9 @@ import dev.shizzi.SessionLog
 /**
  * Opens the stock Hotspot & tethering screen, where the hotspot name, password
  * and band live. The direct action is hidden API, so fall back to the activity
- * and then to the general network settings.
+ * and then to the general network settings. False when none of them opened.
  */
-fun Context.openTetherSettings() {
+fun Context.openTetherSettings(): Boolean {
     val candidates = listOf(
         Intent(TETHER_SETTINGS_ACTION),
         Intent().setComponent(ComponentName(SETTINGS_PACKAGE, "$SETTINGS_PACKAGE.TetherSettings")),
@@ -31,6 +31,7 @@ fun Context.openTetherSettings() {
     }
 
     if (!didOpen) SessionLog.warn("no settings screen for hotspot & tethering")
+    return didOpen
 }
 
 private const val TETHER_SETTINGS_ACTION = "android.settings.TETHER_SETTINGS"

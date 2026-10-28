@@ -9,7 +9,11 @@ import androidx.compose.ui.platform.LocalContext
 import dev.shizzi.UsbTethering
 
 @Composable
-fun TetheringSection(selected: UsbTethering, onSelect: (UsbTethering) -> Unit) {
+fun TetheringSection(
+    selected: UsbTethering,
+    onSelect: (UsbTethering) -> Unit,
+    toasts: ToastState,
+) {
     val context = LocalContext.current
     var isPickerOpen by remember { mutableStateOf(false) }
 
@@ -22,7 +26,9 @@ fun TetheringSection(selected: UsbTethering, onSelect: (UsbTethering) -> Unit) {
     SettingsAction(
         label = SettingsText(title = "System settings"),
         isExternal = true,
-        onClick = context::openTetherSettings,
+        onClick = {
+            if (!context.openTetherSettings()) toasts.show(unopenedToast("system settings"))
+        },
     )
 
     if (!isPickerOpen) return
