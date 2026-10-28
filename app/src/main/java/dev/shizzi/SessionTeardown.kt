@@ -90,7 +90,7 @@ class SessionTeardown(private val context: Context) {
         return releaseDownstreamWith(
             stop = { attemptStop(control, types) },
             findTethered = {
-                runCatching { inspector.findTetheredDownstream(types) }
+                runCatching { inspector.findTetheredDownstream(types).problem }
                     .getOrElse { failure -> "could not verify downstream: ${failure.message}" }
             },
             onRetry = SessionLog::warn,

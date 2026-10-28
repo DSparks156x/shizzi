@@ -158,7 +158,7 @@ class TetherSession(private val context: Context) {
 
         while (System.currentTimeMillis() < deadline) {
 
-            if (downstream.findTetheredDownstream(types) != null) {
+            if (downstream.findTetheredDownstream(types) is DownstreamReading.Tethered) {
                 SessionLog.info("downstream tethered")
                 return
             }

@@ -34,7 +34,8 @@ class UsbDownstream(
     fun check(now: Long): DownstreamHealth {
         if (setting == UsbTethering.NEVER) return DownstreamHealth.Up
 
-        val isTethered = link.isTethered()
+        // Unreadable: no grounds to restart USB or to give up on it.
+        val isTethered = link.isTethered() ?: return DownstreamHealth.Up
         if (reconnect.shouldRestart(isTethered, link.isHostConnected() == true, now)) {
             val (didStart, startDetail) = link.startTethering()
             if (!didStart) onEvent("usb tethering did not restart ($startDetail)")

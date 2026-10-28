@@ -8,7 +8,8 @@ interface UsbLink {
     /** Null when `dumpsys usb` could not be read. */
     fun isHostConnected(): Boolean?
 
-    fun isTethered(): Boolean
+    /** Null when `dumpsys tethering` could not be read. */
+    fun isTethered(): Boolean?
 
     fun startTethering(): Pair<Boolean, String>
 }
@@ -25,8 +26,12 @@ class AndroidUsbLink(private val context: Context) : UsbLink {
         return parseUsbHostConnected(observation.rawOutput)
     }
 
-    override fun isTethered(): Boolean =
-        downstream.findTetheredDownstream(listOf(TetheringType.USB)) != null
+    override fun isTethered(): Boolean? =
+        when (downstream.findTetheredDownstream(listOf(TetheringType.USB))) {
+            DownstreamReading.Unknown -> null
+            DownstreamReading.None -> false
+            is DownstreamReading.Tethered -> true
+        }
 
     override fun startTethering(): Pair<Boolean, String> =
         DownstreamControl(context).startTethering(TetheringType.USB)

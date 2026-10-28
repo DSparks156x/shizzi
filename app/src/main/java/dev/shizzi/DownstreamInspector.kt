@@ -1,5 +1,40 @@
 package dev.shizzi
 
+/** What `dumpsys tethering` says about the downstreams asked about. */
+sealed interface DownstreamReading {
+    object None : DownstreamReading
+    object Unknown : DownstreamReading
+    class Tethered(val names: List<String>) : DownstreamReading
+}
+
+/** Anything short of a confirmed release is a teardown problem. */
+val DownstreamReading.problem: String?
+    get() = when (this) {
+        DownstreamReading.None -> null
+        DownstreamReading.Unknown -> "dumpsys tethering timed out; downstream state unknown"
+        is DownstreamReading.Tethered -> "downstream still tethered: $names"
+    }
+
+fun readDownstream(observation: UpstreamObservation, types: Collection<TetheringType>): DownstreamReading {
+    if (observation.didTimeout) return DownstreamReading.Unknown
+
+    val tethered = tetheredInterfaces(observation.rawOutput)
+        .filter { name -> tetheringTypeOf(name) in types }
+
+    return when {
+        tethered.isEmpty() -> DownstreamReading.None
+        else -> DownstreamReading.Tethered(tethered)
+    }
+}
+
+private val TETHERED_STATE_PATTERN = Regex("""^\s*(\w+)\s+-\s+TetheredState\s+-""")
+
+private fun tetheredInterfaces(output: String): List<String> =
+    output.lineSequence()
+        .mapNotNull { line -> TETHERED_STATE_PATTERN.find(line)?.groupValues?.get(1) }
+        .distinct()
+        .toList()
+
 class DownstreamInspector(private val inspector: UpstreamInspector = UpstreamInspector()) {
 
     private var cachedCount = 0
@@ -7,18 +42,8 @@ class DownstreamInspector(private val inspector: UpstreamInspector = UpstreamIns
 
     private var loggedCount = 0
 
-    fun findTetheredDownstream(types: Collection<TetheringType> = TetheringType.entries): String? {
-        val observation = inspector.observe()
-        if (observation.didTimeout) return "dumpsys tethering timed out; downstream state unknown"
-
-        val tethered = tetheredInterfaces(observation.rawOutput)
-            .filter { name -> tetheringTypeOf(name) in types }
-
-        return when {
-            tethered.isEmpty() -> null
-            else -> "downstream still tethered: $tethered"
-        }
-    }
+    fun findTetheredDownstream(types: Collection<TetheringType>): DownstreamReading =
+        readDownstream(inspector.observe(), types)
 
     fun countDevices(types: Collection<TetheringType> = listOf(TetheringType.WIFI)): Int {
         val now = System.currentTimeMillis()
@@ -49,12 +74,6 @@ class DownstreamInspector(private val inspector: UpstreamInspector = UpstreamIns
             .count { name -> tetheringTypeOf(name) == TetheringType.USB }
     }
 
-    private fun tetheredInterfaces(output: String): List<String> =
-        output.lineSequence()
-            .mapNotNull { line -> TETHERED_STATE_PATTERN.find(line)?.groupValues?.get(1) }
-            .distinct()
-            .toList()
-
     private fun logCountChange(count: Int) {
         if (count == loggedCount) return
 
@@ -70,9 +89,6 @@ class DownstreamInspector(private val inspector: UpstreamInspector = UpstreamIns
             ?: 0
 
     private companion object {
-
-        private val TETHERED_STATE_PATTERN =
-            Regex("""^\s*(\w+)\s+-\s+TetheredState\s+-""")
 
         private val CONNECTED_CLIENTS_PATTERN =
             Regex("""getConnectedClientList\(\)\.size\(\):\s*(\d+)""")

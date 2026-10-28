@@ -10,13 +10,13 @@ class UsbDownstreamTest {
 
     private class FakeUsbLink(
         var isConnected: Boolean? = false,
-        var isUp: Boolean = false,
+        var isUp: Boolean? = false,
     ) : UsbLink {
         var startCount = 0
 
         override fun isHostConnected(): Boolean? = isConnected
 
-        override fun isTethered(): Boolean = isUp
+        override fun isTethered(): Boolean? = isUp
 
         override fun startTethering(): Pair<Boolean, String> {
             startCount++
@@ -94,6 +94,15 @@ class UsbDownstreamTest {
         val link = FakeUsbLink(isConnected = true)
 
         assertEquals(DownstreamHealth.Up, UsbDownstream(UsbTethering.NEVER, link).check(now = 0))
+        assertEquals(0, link.startCount)
+    }
+
+    @Test
+    fun `an unreadable tethering state neither restarts nor gives up`() {
+        val link = FakeUsbLink(isConnected = true, isUp = null)
+        val usb = UsbDownstream(UsbTethering.ALWAYS, link)
+
+        assertEquals(DownstreamHealth.Up, usb.check(now = UsbReconnect.GIVE_UP_AFTER_MS))
         assertEquals(0, link.startCount)
     }
 }
