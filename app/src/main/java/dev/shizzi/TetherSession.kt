@@ -24,6 +24,7 @@ class TetherSession(private val context: Context) {
     private var usbTethering = UsbTethering.NEVER
 
     private var watchdog: SessionWatchdog? = null
+    private var events: TetheringEvents? = null
     private val teardown = SessionTeardown(context)
     private val downstream = DownstreamInspector()
     private val started = StartedDownstreams()
@@ -127,6 +128,9 @@ class TetherSession(private val context: Context) {
         }
         watchdog = guard
         guard.start()
+
+        if (usbTethering == UsbTethering.NEVER) return
+        events = TetheringEvents(context, guard::wake).also(TetheringEvents::register)
     }
 
     private fun tearDownAfter(problem: String) {
@@ -203,6 +207,8 @@ class TetherSession(private val context: Context) {
     fun stop(): String {
         watchdog?.stop()
         watchdog = null
+        events?.unregister()
+        events = null
         vpn.stop()
         teardown.removeShutdownHook()
 

@@ -18,6 +18,7 @@ class SessionWatchdog(
 
     private val inspector = UpstreamInspector()
     private val isRunning = AtomicBoolean(false)
+    private val timer = CheckTimer(POLL_INTERVAL_MS)
     private var thread: Thread? = null
 
     private val tolerance = UpstreamTolerance(expectedInterface) { strike ->
@@ -34,6 +35,9 @@ class SessionWatchdog(
         }
     }
 
+    /** Checks the downstream now instead of at the next interval. */
+    fun wake() = timer.wake()
+
     fun stop() {
         isRunning.set(false)
 
@@ -44,10 +48,13 @@ class SessionWatchdog(
 
     private fun monitor() {
         while (isRunning.get()) {
-            val didSleep = runCatching { Thread.sleep(POLL_INTERVAL_MS) }.isSuccess
-            if (!didSleep || !isRunning.get()) return
+            val kind = runCatching { timer.await() }.getOrElse { return }
+            if (!isRunning.get()) return
 
-            val problem = checkUpstream()
+            val problem = when (kind) {
+                CheckKind.FULL -> checkUpstream()
+                CheckKind.DOWNSTREAM -> checkDownstreamOnly()
+            }
             if (problem != null) {
                 isRunning.set(false)
                 Log.w(TAG, "tearing down: $problem")
@@ -68,6 +75,12 @@ class SessionWatchdog(
         if (health is DownstreamHealth.Lost) return health.problem
 
         return tolerance.judge(reading, names, health)
+    }
+
+    /** Upstream strikes count full checks only, so a woken check judges the downstream alone. */
+    private fun checkDownstreamOnly(): String? {
+        val health = checkDownstream(inspector.observe())
+        return (health as? DownstreamHealth.Lost)?.problem
     }
 
     private companion object {
