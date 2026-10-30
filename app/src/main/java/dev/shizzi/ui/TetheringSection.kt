@@ -24,7 +24,7 @@ fun TetheringSection(
     )
 
     SettingsAction(
-        label = SettingsText(title = "System settings"),
+        label = SettingsText(title = "Open system settings"),
         isExternal = true,
         onClick = {
             if (!context.openTetherSettings()) toasts.show(unopenedToast("system settings"))
