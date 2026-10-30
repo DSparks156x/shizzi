@@ -60,7 +60,7 @@ class UsbDownstreamTest {
 
         assertEquals(DownstreamHealth.Awaiting, usb.check(0, DownstreamReading.None))
         assertTrue(usb.isWaitingForUsb)
-        assertTrue(usb.check(UsbReconnect.GIVE_UP_AFTER_MS, DownstreamReading.None) is DownstreamHealth.Lost)
+        assertTrue(usb.check(UsbReconnect.GIVE_UP_AFTER_MS, DownstreamReading.None) is DownstreamHealth.Ended)
     }
 
     @Test

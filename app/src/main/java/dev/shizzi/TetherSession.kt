@@ -122,15 +122,19 @@ class TetherSession(private val context: Context) {
             val usbReading = readDownstream(tethering, listOf(TetheringType.USB))
             usbDownstream.check(System.currentTimeMillis(), usbReading)
         }
-        val guard = SessionWatchdog(name, checkDownstream = checkUsb) { problem ->
-            SessionLog.warn("ending session: $problem")
-            tearDownAfter(problem)
-        }
+        val guard = SessionWatchdog(name, checkDownstream = checkUsb, onEnd = ::endFromWatchdog)
         watchdog = guard
         guard.start()
 
         if (usbTethering == UsbTethering.NEVER) return
         events = TetheringEvents(context, guard::wake).also(TetheringEvents::register)
+    }
+
+    private fun endFromWatchdog(end: WatchdogEnd) {
+        when (end) {
+            is WatchdogEnd.Failed -> tearDownAfter(end.problem)
+            is WatchdogEnd.Finished -> stop()
+        }
     }
 
     private fun tearDownAfter(problem: String) {

@@ -58,7 +58,7 @@ class UsbDownstream(
 
         if (reconnect.hasGivenUp(now)) {
             val minutes = UsbReconnect.GIVE_UP_AFTER_MS / 60_000
-            return DownstreamHealth.Lost("no USB cable for $minutes minutes")
+            return DownstreamHealth.Ended("usb not connected for $minutes minutes")
         }
         return DownstreamHealth.Awaiting
     }
